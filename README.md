@@ -35,8 +35,8 @@ cargo run --bin sem_mutex
 - Altere os valores de num_pedidos e num_cozinheiros para testar diferentes cenários.
 - O programa cria várias threads que simulam cozinheiros acessando uma fila global sem proteção.
 - Cada thread tenta pegar pedidos e processá-los, mas o acesso simultâneo pode causar:
-- Pedidos "pulados" ou repetidos
-- Panics ou travamentos devido a corrupção de dados
+  - Pedidos "pulados" ou repetidos
+  - Panics ou travamentos devido a corrupção de dados
 - Ao final, o programa exibe o total de pedidos preparados, que geralmente não será igual ao número esperado.
 
 ### 4. Possível saída (não é determinística)
