@@ -32,7 +32,7 @@ cargo run --bin sem_mutex
 
 ### 3. Como usar o código
 
-- Altere os valores de num_pedidos e num_cozinheiros para testar diferentes cenários.
+- Altere os valores de `num_pedidos` e `num_cozinheiros` para testar diferentes cenários.
 - O programa cria várias threads que simulam cozinheiros acessando uma fila global sem proteção.
 - Cada thread tenta pegar pedidos e processá-los, mas o acesso simultâneo pode causar:
   - Pedidos "pulados" ou repetidos
