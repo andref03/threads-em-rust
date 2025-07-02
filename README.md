@@ -60,3 +60,11 @@ Cozinheiro 1 terminou pedido=98 (tempo de preparo: 1770ms)
 Cozinheiro 4 terminou pedido=99 (tempo de preparo: 2267ms)
 Tempo total: 20.17s segundos
 Todos os 100 pedidos foram preparados!
+```
+
+## 👥 Equipe
+
+- André Felipe
+- Bernardo Ruas
+- Heuller Ramos
+- Gustavo dos Santos
