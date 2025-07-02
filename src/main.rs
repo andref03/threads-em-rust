@@ -1,70 +1,74 @@
 use std::{
-    sync::{Arc, Mutex},          // Arc = permite múltiplas threads; Mutex = exclusão mútua
     thread,
     time::{Duration, Instant},
 };
-
 use rand::Rng;
+
+// variáveis globais mutáveis sem nenhuma proteção de sincronização
+static mut FILA_DE_PEDIDOS: Vec<u32> = Vec::new();
+static mut PEDIDOS_PRONTOS: Vec<u32> = Vec::new();
 
 fn main() {
     let num_pedidos = 100;
     let num_cozinheiros = 5;
 
-    // vetores protegidos por Mutex e compartilhados por Arc
-    let fila_de_pedidos = Arc::new(Mutex::new((0..num_pedidos).collect::<Vec<_>>()));
-    let pedidos_prontos = Arc::new(Mutex::new(Vec::new()));
+    unsafe {
+        // variável estática e mutável necessita do bloco unsafe
+        FILA_DE_PEDIDOS = (0..num_pedidos).collect();
+    }
 
-    let mut cozinheiros = vec![]; // lista de threads (cozinheiros)
+    let mut cozinheiros = vec![];
 
     let inicio = Instant::now();
 
-    // cria threads (cozinheiros)
+    // cria as threads que simulam os cozinheiros
     for i in 0..num_cozinheiros {
 
-        // Clona referência segura da fila e dos pedidos prontos, para cada thread
-        let fila = Arc::clone(&fila_de_pedidos);
-        let prontos = Arc::clone(&pedidos_prontos);
-
         let thread = thread::spawn(move || {
-            println!("Cozinheiro {} pronto para receber pedidos!", i);
-
             let mut rng = rand::thread_rng();
 
             loop {
-                // tenta obter um pedido da fila
-                let pedido = {
-                    let mut fila = fila.lock().unwrap(); // bloqueia o mutex para acesso exclusivo da thread
-
-                    if fila.is_empty() {
-                        break; // fila vazia: cozinheiro encerra
+                // tentativa de pegar um pedido da fila
+                let pedido_opt = unsafe {
+                    // condição de corrida: threads podem entrar nesse bloco ao mesmo tempo (corrupção da fila)
+                    if FILA_DE_PEDIDOS.is_empty() {
+                        None
+                    } else {
+                        // remove o primeiro item da fila (várias threads podem tentar remover ao mesmo tempo)
+                        Some(FILA_DE_PEDIDOS.remove(0))
                     }
+                };
 
-                    fila.remove(0) // retira o primeiro pedido da fila e o armazena na variável "pedido"
-                }; 
-                
-                // Mutex liberado aqui (ao sair do bloco)
+                // se não havia mais pedidos, a thread termina
+                let pedido = match pedido_opt {
+                    Some(p) => p,
+                    None => break,
+                };
 
                 println!("Cozinheiro {} preparando pedido={}", i, pedido);
 
-                let tempo_ms = rng.gen_range(1000..=5000); // n° aleatório de 1 a 5 segundos
-                thread::sleep(Duration::from_millis(tempo_ms)); // simula preparo
+                // tempo aleatório de preparo entre 1 e 5 segundos
+                let tempo_ms = rng.gen_range(1000..=5000);
+                thread::sleep(Duration::from_millis(tempo_ms));
 
                 println!(
                     "Cozinheiro {} terminou pedido={} (tempo de preparo: {}ms)",
                     i, pedido, tempo_ms
                 );
 
-                // adiciona o pedido finalizado na lista de prontos
-                let mut prontos = prontos.lock().unwrap();
-                prontos.push(pedido);
+                unsafe {
+                    // adiciona o pedido pronto na lista global sem proteção
+                    // isso é outra condição de corrida: múltiplas threads podem escrever ao mesmo tempo
+                    PEDIDOS_PRONTOS.push(pedido);
+                }
             }
-            // Mutex liberado automaticamente
         });
 
+        // armazena a thread para poder dar join depois
         cozinheiros.push(thread);
     }
 
-    // aguarda todas as threads terminarem
+    // espera todas as threads terminarem
     for c in cozinheiros {
         c.join().unwrap();
     }
@@ -74,12 +78,13 @@ fn main() {
 
     println!("Tempo total: {:.2?} segundos", tempo_total);
 
-    // confere se todos os pedidos foram preparados
-    let qtdd_prontos = pedidos_prontos.lock().unwrap().len();
-    if num_pedidos == qtdd_prontos {
-        println!("Todos os {} pedidos foram preparados!", qtdd_prontos);
-    } else {
-        println!("Existem pedidos que não foram preparados!!!");
+    unsafe {
+        // verifica quantos pedidos foram preparados (pode haver pedidos perdidos ou duplicados)
+        let qtdd_prontos = PEDIDOS_PRONTOS.len();
+        if qtdd_prontos == num_pedidos {
+            println!("Todos os {} pedidos foram preparados!", qtdd_prontos);
+        } else {
+            println!("Existem pedidos que não foram preparados!!!");
+        }
     }
-
 }
