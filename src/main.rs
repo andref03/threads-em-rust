@@ -72,14 +72,33 @@ fn main() {
     let fim = Instant::now();
     let tempo_total = fim.duration_since(inicio);
 
-    println!("Tempo total: {:.2?} segundos", tempo_total);
+    println!("\n> Tempo total: {:.2?} segundos", tempo_total);
 
     // confere se todos os pedidos foram preparados
     let qtdd_prontos = pedidos_prontos.lock().unwrap().len();
-    if num_pedidos == qtdd_prontos {
-        println!("Todos os {} pedidos foram preparados!", qtdd_prontos);
+    if qtdd_prontos == num_pedidos {
+        println!("> Todos os {} pedidos foram preparados!", qtdd_prontos);
     } else {
-        println!("Existem pedidos que não foram preparados!!!");
+        println!("> Existem pedidos que não foram preparados!!!");
     }
+
+    // conferindo se a fila de pedidos está vazia
+    if fila_de_pedidos.lock().unwrap().is_empty() {
+        println!("> A fila inicial de pedidos está vazia!");
+    } else {
+        println!("> A fila inicial de pedidos ainda contém pedidos para serem preparados!");
+    }
+
+    // imprime a lista de pedidos prontos
+    let pedidos = pedidos_prontos.lock().unwrap();
+    print!("> Lista de pedidos prontos: [");
+    for (i, pedido) in pedidos.iter().enumerate() {
+        if i == pedidos.len() - 1 {
+            print!("{}", pedido); // último elemento não tem vírgula
+        } else {
+            print!("{}, ", pedido);
+        }
+    }
+    println!("]\n");
 
 }
